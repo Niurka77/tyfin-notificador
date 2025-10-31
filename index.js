@@ -1,15 +1,20 @@
 // index.js
 const express = require('express');
-const fetch = require('node-fetch');
+const { GoogleAuth } = require('google-auth-library');
 
 const app = express();
 app.use(express.json());
 
-// Tu clave FCM (la misma de google-services.json)
-const FCM_SERVER_KEY = 'AIzaSyBRn9-wSylEN6a95kvbrh3ZYgPnye1ZHm0';
-const FCM_URL = 'https://fcm.googleapis.com/fcm/send';
+const projectId = 'tyfin-notificaciones';
+const FCM_URL = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
 
-// Endpoint para enviar notificaciones
+// ✅ Leer credenciales desde la variable de entorno (NO desde archivo)
+const serviceAccount = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+const auth = new GoogleAuth({
+  credentials: serviceAccount,
+  scopes: ['https://www.googleapis.com/auth/firebase.messaging']
+});
+
 app.post('/enviar', async (req, res) => {
   try {
     const { tokens_destino, titulo, cuerpo, datos = {} } = req.body;
@@ -18,40 +23,48 @@ app.post('/enviar', async (req, res) => {
       return res.status(400).json({ error: 'Se requiere al menos un token destino' });
     }
 
-    const payload = {
-      registration_ids: tokens_destino,
-      notification: {
-        title: titulo,
-        body: cuerpo,
-        sound: 'default'
-      },
-      data: {
-        ...datos,
-        click_action: 'FLUTTER_NOTIFICATION_CLICK'
-      }
-    };
+    const accessToken = await auth.getAccessToken();
 
-    const response = await fetch(FCM_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `key=${FCM_SERVER_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+    const results = [];
+    for (const token of tokens_destino) {
+      const payload = {
+        message: {
+          token,
+          notification: { title: titulo, body: cuerpo },
+          data: {
+            ...datos,
+            click_action: 'FLUTTER_NOTIFICATION_CLICK'
+          },
+          android: {
+            notification: { sound: 'default' }
+          },
+          apns: {
+            payload: {
+              aps: { sound: 'default' }
+            }
+          }
+        }
+      };
 
-    const result = await response.json();
+      const response = await fetch(FCM_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-    if (response.ok) {
-      console.log(`✅ Notificaciones enviadas: ${result.success}`);
-      res.json({ success: true, result });
-    } else {
-      console.error('❌ Error FCM:', result);
-      res.status(500).json({ error: 'Error al enviar notificación', details: result });
+      const result = await response.json();
+      results.push({ token, success: response.ok, result });
     }
+
+    console.log('✅ Notificaciones procesadas:', results.length);
+    res.json({ success: true, results });
+
   } catch (error) {
-    console.error('🔥 Error en el servidor:', error);
-    res.status(500).json({ error: 'Error interno' });
+    console.error('🔥 Error al enviar notificaciones:', error);
+    res.status(500).json({ error: 'Error interno', message: error.message });
   }
 });
 
