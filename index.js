@@ -1,14 +1,21 @@
 // index.js
 const express = require('express');
+const fetch = require('node-fetch');
 const { GoogleAuth } = require('google-auth-library');
 
 const app = express();
 app.use(express.json());
 
+// ✅ Configuración limpia para FCM V1
 const projectId = 'tyfin-notificaciones';
-const FCM_URL = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+const FCM_URL = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`; // ← SIN ESPACIOS
 
-// ✅ Leer credenciales desde la variable de entorno (NO desde archivo)
+// ✅ Validar que las credenciales existan
+if (!process.env.GOOGLE_CREDENTIALS_JSON) {
+  console.error('❌ ERROR: GOOGLE_CREDENTIALS_JSON no está definida en las variables de entorno.');
+  process.exit(1);
+}
+
 const serviceAccount = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
 const auth = new GoogleAuth({
   credentials: serviceAccount,
@@ -24,8 +31,8 @@ app.post('/enviar', async (req, res) => {
     }
 
     const accessToken = await auth.getAccessToken();
-
     const results = [];
+
     for (const token of tokens_destino) {
       const payload = {
         message: {
@@ -70,5 +77,5 @@ app.post('/enviar', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Servicio de notificaciones listo en puerto ${PORT}`);
+  console.log(`✅ Servicio listo en puerto ${PORT}`);
 });

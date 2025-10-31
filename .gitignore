@@ -1,2 +1,7 @@
-*.json
+# Ignorar credenciales de Firebase
 tyfin-notificaciones-firebase-adminsdk-*.json
+node_modules/
+.env
+*.log
+# Ignorar otros JSON sensibles si es necesario
+# *.secret.json
