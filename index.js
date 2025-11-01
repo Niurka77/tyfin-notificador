@@ -1,4 +1,3 @@
-// index.js
 const express = require('express');
 const fetch = require('node-fetch');
 const { GoogleAuth } = require('google-auth-library');
@@ -19,7 +18,7 @@ if (!process.env.GOOGLE_CREDENTIALS_JSON) {
 const serviceAccount = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
 const auth = new GoogleAuth({
   credentials: serviceAccount,
-  scopes: ['https://www.googleapis.com/auth/firebase.messaging']
+  scopes: ['https://www.googleapis.com/auth/firebase.messaging'] // ← SIN ESPACIOS
 });
 
 app.post('/enviar', async (req, res) => {
