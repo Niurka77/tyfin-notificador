@@ -41,9 +41,12 @@ app.post('/enviar', async (req, res) => {
             ...datos,
             click_action: 'FLUTTER_NOTIFICATION_CLICK'
           },
-          android: {
-            notification: { sound: 'default' }
-          },
+         android: {
+  notification: {
+    sound: 'default',
+    channelId: 'ventas_canal'  // ← ¡ESTO ES CLAVE!
+  }
+},
           apns: {
             payload: {
               aps: { sound: 'default' }
