@@ -21,6 +21,23 @@ const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/firebase.messaging'] // ← SIN ESPACIOS
 });
 
+// ✅ Endpoint de diagnóstico para notificaciones push
+app.post('/diagnostico', (req, res) => {
+  const { fcm_token, user_id, platform, timestamp, canal_creado, sonido_configurado } = req.body;
+  
+  console.log('🔍 DIAGNÓSTICO PUSH:', {
+    fcm_token: fcm_token?.substring(0, 20) + '...', // no loguear token completo por seguridad
+    user_id,
+    platform,
+    timestamp,
+    canal_creado,
+    sonido_configurado
+  });
+
+  res.json({ success: true, message: 'Diagnóstico recibido' });
+});
+
+// ✅ Endpoint para enviar notificaciones push
 app.post('/enviar', async (req, res) => {
   try {
     const { tokens_destino, titulo, cuerpo, datos = {} } = req.body;
@@ -41,12 +58,12 @@ app.post('/enviar', async (req, res) => {
             ...datos,
             click_action: 'FLUTTER_NOTIFICATION_CLICK'
           },
-         android: {
-  notification: {
-    sound: 'default',
-    channelId: 'ventas_canal'  // ← ¡ESTO ES CLAVE!
-  }
-},
+          android: {
+            notification: {
+              sound: 'default',
+              channelId: 'ventas_canal'  // ← ¡ESTO ES CLAVE!
+            }
+          },
           apns: {
             payload: {
               aps: { sound: 'default' }
